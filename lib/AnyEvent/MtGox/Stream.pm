@@ -4,10 +4,11 @@ use strict;
 use warnings;
 
 use AnyEvent;
-use AnyEvent::HTTP;
+use AnyEvent::HTTP qw(http_post);
+use AnyEvent::Util qw(guard);
 use Carp qw(croak);
 use Errno qw(EPIPE);
-use JSON;
+use JSON ();
 use Protocol::WebSocket::Frame;
 use Protocol::WebSocket::Handshake::Client;
 use URI;
@@ -24,6 +25,7 @@ sub new {
     my $on_message    = $params{on_message}    || sub { };
 
     my $server = 'socketio.mtgox.com';
+    my $handle;
 
     # Socket.IO handshake.
     my $uri = URI->new("http://$server/socket.io/1");
@@ -37,7 +39,7 @@ sub new {
         AE::log debug => "Socket.IO handshake succeeded: $sid";
 
         my $timer;
-        my $handle; $handle = AnyEvent::Handle->new(
+        $handle = AnyEvent::Handle->new(
             connect  => [ $uri->host, $uri->port ],
             tls      => $secure ? 'connect' : undef,
             on_error => sub {
@@ -104,6 +106,9 @@ sub new {
             }
         });
     };
+
+    return unless defined wantarray;
+    return guard { $handle->destroy };
 }
 
 1;
@@ -135,7 +140,10 @@ streaming API.
 
     $client = AnyEvent::MtGox::Stream->new(%args)
 
-Creates a new client. The following named arguments are accepted:
+Creates a new client and returns a guard object if called in non-void context.
+When it is destroyed, it closes the stream.
+
+The following named arguments are accepted:
 
 =over
 
