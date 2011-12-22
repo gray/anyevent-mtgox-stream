@@ -1,4 +1,7 @@
 Revision history for AnyEvent-MtGox-Stream
 
+0.02  Thu Dec 22 22:34:58 UTC 2011
+    - Used guard to close stream.
+
 0.01  Thu Dec 22 11:28:48 UTC 2011
     - Initial distribution.

@@ -13,7 +13,7 @@ use Protocol::WebSocket::Frame;
 use Protocol::WebSocket::Handshake::Client;
 use URI;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 $VERSION = eval $VERSION;
 
 sub new {
