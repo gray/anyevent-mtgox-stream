@@ -108,7 +108,7 @@ sub new {
     };
 
     return unless defined wantarray;
-    return guard { $handle->destroy };
+    return guard { undef $handle };
 }
 
 1;
