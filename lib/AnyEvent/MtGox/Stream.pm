@@ -5,7 +5,6 @@ use warnings;
 
 use AnyEvent;
 use AnyEvent::HTTP qw(http_post);
-use AnyEvent::Util qw(guard);
 use Carp qw(croak);
 use Errno qw(EPIPE);
 use JSON ();
@@ -25,7 +24,6 @@ sub new {
     my $on_message    = $params{on_message}    || sub { };
 
     my $server = 'socketio.mtgox.com';
-    my $handle;
 
     # Socket.IO handshake.
     my $uri = URI->new("http://$server/socket.io/1");
@@ -39,7 +37,7 @@ sub new {
         AE::log debug => "Socket.IO handshake succeeded: $sid";
 
         my $timer;
-        $handle = AnyEvent::Handle->new(
+        my $handle; $handle = AnyEvent::Handle->new(
             connect  => [ $uri->host, $uri->port ],
             tls      => $secure ? 'connect' : undef,
             on_error => sub {
@@ -58,7 +56,7 @@ sub new {
         $handle->push_write($wsh->to_string);
 
         $handle->push_read(sub {
-            $wsh->parse($handle->rbuf)
+            $wsh->parse($_[0]->rbuf)
                 or return 1, $on_error->($wsh->error);
             if ($wsh->is_done) {
                 AE::log debug => 'WebSocket handshake succeeded';
@@ -81,7 +79,7 @@ sub new {
         my $json = JSON->new;
 
         $handle->push_read(sub {
-            $frame->append($handle->rbuf);
+            $frame->append($_[0]->rbuf);
             while (defined(my $msg = $frame->next)) {
                 my ($type, $id, $endpoint, $data) = split ':', $msg, 4;
                 if ('4' eq $type and '/mtgox' eq $endpoint) {
@@ -106,10 +104,8 @@ sub new {
             }
         });
     };
-
-    return unless defined wantarray;
-    return guard { undef $handle };
 }
+
 
 1;
 
